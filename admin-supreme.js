@@ -1,21 +1,18 @@
 import { createClient } from "@libsql/client/web";
 export default {
   async fetch(request, env, ctx) {
-    try {
-      if (request.method === "OPTIONS") {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    }
-  });
-}
+    try { 
+      if (!env.TURSO_DATABASE_URL || !env.TURSO_AUTH_TOKEN) {
+        return json({ 
+          error: "Internal Configuration Error", 
+          details: "Missing Turso Environment Variables" 
+        }, 500);
+      }
       const db = createClient({
-  url: env.TURSO_DATABASE_URL,
-  authToken: env.TURSO_AUTH_TOKEN,
-});
+        url: env.TURSO_DATABASE_URL,
+        authToken: env.TURSO_AUTH_TOKEN,
+      });
+
       const url = new URL(request.url);
       const method = request.method;
       // ROUTES
@@ -58,21 +55,27 @@ if (method === "PUT" && url.pathname.startsWith("/admin/anime/")) {
 };
 async function getAnimeIds(db) {
   try {
+    // 1. Ensure SQL is a string using backticks or quotes
     const result = await db.execute({
-    sql: `
-      SELECT id FROM anime_info
-      ORDER BY updated_at DESC
-    `});
+      sql: `SELECT id FROM anime_info ORDER BY updated_at DESC`
+    });
 
-    return json((result.rows || []).map(r => r.id));
+    // 2. Safety check: Ensure result and rows exist before mapping
+    if (!result || !result.rows) {
+      return json({ error: "No data returned from database" }, 404);
+    }
+
+    return json(result.rows.map(r => r.id));
+
   } catch (err) {
     console.error("Failed to fetch anime IDs:", err);
     return json({
       error: "Failed to fetch anime IDs",
-      details: err.message
+      details: err.message // This is where "Cannot convert undefined..." is being caught
     }, 500);
   }
 }
+
 async function getAnime(db, id) {
   const animeResult = await db.execute({
     sql: `SELECT * FROM anime_info WHERE id = ?`,
