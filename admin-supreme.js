@@ -55,14 +55,17 @@ if (method === "PUT" && url.pathname.startsWith("/admin/anime/")) {
 };
 async function getAnimeIds(db) {
   try {
-    // 1. Ensure SQL is a string using backticks or quotes
-    const result = await db.execute({
-      sql: `SELECT id FROM anime_info ORDER BY updated_at DESC`
-    });
+    const result = await db.execute(
+      `SELECT id FROM anime_info ORDER BY updated_at DESC`
+    );
 
-    // 2. Safety check: Ensure result and rows exist before mapping
-    if (!result || !result.rows) {
-      return json({ error: "No data returned from database" }, 404);
+    console.log("DB RESULT:", result);
+
+    if (!result || !Array.isArray(result.rows)) {
+      return json({
+        error: "Database returned unexpected format",
+        debug: result
+      }, 500);
     }
 
     return json(result.rows.map(r => r.id));
@@ -71,7 +74,7 @@ async function getAnimeIds(db) {
     console.error("Failed to fetch anime IDs:", err);
     return json({
       error: "Failed to fetch anime IDs",
-      details: err.message // This is where "Cannot convert undefined..." is being caught
+      details: err.message
     }, 500);
   }
 }
@@ -347,4 +350,4 @@ function json(data, status = 200) {
       "Access-Control-Allow-Headers": "Content-Type"
     }
   });
-                                    }
+    }
