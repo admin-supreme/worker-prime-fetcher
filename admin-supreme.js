@@ -55,9 +55,9 @@ if (method === "PUT" && url.pathname.startsWith("/admin/anime/")) {
 };
 async function getAnimeIds(db) {
   try {
-    const result = await db.execute(
-      `SELECT id FROM anime_info ORDER BY updated_at DESC`
-    );
+const result = await db.execute({
+  sql: `SELECT id FROM anime_info ORDER BY updated_at DESC`
+});
 
     console.log("DB RESULT:", result);
 
