@@ -1,6 +1,6 @@
-import { Client as LibsqlClient, createClient } from "@libsql/client/web";
+import { createClient } from "@libsql/client/web";
 export default {  
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {  
+  async fetch(request, env, ctx) {  
     return new Response("Worker is running (cron only).", {  
       status: 200,  
     });  
@@ -10,7 +10,7 @@ if (!env.LIBSQL_DB_URL || !env.LIBSQL_DB_AUTH_TOKEN) {
   console.error("Missing Turso configuration.");
   return;
 }
-const db: LibsqlClient = createClient({
+const db = createClient({
   url: env.LIBSQL_DB_URL.trim(),
   authToken: env.LIBSQL_DB_AUTH_TOKEN.trim(),
 });
@@ -29,7 +29,7 @@ const db: LibsqlClient = createClient({
   }
 };
 
-async function syncJikan(env: Env, db: LibsqlClient, event: ScheduledEvent) {
+async function syncJikan(env, db, event) {
   let page;
   const overrideApplied = env.STATE ? await env.STATE.get("jikan_override_applied") : null;
 if (env.START_PAGE && env.START_PAGE !== "" && !overrideApplied) {
@@ -427,4 +427,4 @@ async function upsertAnime(db, anime) {
   anime.favorites
 ].map(v => v === undefined ? null : v)
   });
-}
+                                }
