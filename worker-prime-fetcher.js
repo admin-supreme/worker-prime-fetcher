@@ -1,12 +1,4 @@
 import { Client as LibsqlClient, createClient } from "@libsql/client/web";
-export interface Env {
-  LIBSQL_DB_URL: string;
-  LIBSQL_DB_AUTH_TOKEN: string;
-  STATE: KVNamespace;
-  START_PAGE?: string;
-  REFRESH_START_ID?: string;
-  TMDB_API_KEY: string;
-}
 export default {  
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {  
     return new Response("Worker is running (cron only).", {  
