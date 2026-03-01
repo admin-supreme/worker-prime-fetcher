@@ -1,31 +1,23 @@
 {
-  "name": "admin-supreme-worker",
+  "name": "worker-prime-fetcher",
   "version": "1.0.0",
-  "private": true,
-  "description": "Cloudflare Worker Admin API using Turso (libSQL)",
+  "description": "Cloudflare Worker cron job for syncing Jikan anime data to Turso with TMDB poster enrichment.",
+  "main": "worker-prime-fetcher.js",
   "type": "module",
-  "main": "admin-supreme.js",
+  "private": true,
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "deploy:prod": "wrangler deploy --env production",
     "tail": "wrangler tail",
-    "check": "wrangler deploy --dry-run"
+    "publish": "wrangler deploy --minify"
   },
   "dependencies": {
     "@libsql/client": "^0.6.0"
   },
   "devDependencies": {
-    "wrangler": "^3.57.0"
+    "wrangler": "^3.73.0"
   },
   "engines": {
-    "node": ">=18.17.0"
-  },
-  "keywords": [
-    "cloudflare-workers",
-    "turso",
-    "libsql",
-    "edge-api",
-    "admin-api"
-  ]
+    "node": ">=18"
+  }
 }
