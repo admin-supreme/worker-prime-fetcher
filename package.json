@@ -12,12 +12,12 @@
     "publish": "wrangler deploy --minify"
   },
   "dependencies": {
-    "@libsql/client": "^0.6.0"
+    "@libsql/client": "^0.17.0"
   },
   "devDependencies": {
     "wrangler": "^4.69.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   }
 }
