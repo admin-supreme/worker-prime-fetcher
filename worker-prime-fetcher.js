@@ -1,5 +1,22 @@
 import { createClient } from "@libsql/client/web";
 export default {  
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const endpoint = "https://lupinarashi--c4c469e22e8b11f1969a42dde27851f2.web.val.run";
+    const res = await fetch(endpoint, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
+    const body = await res.text();
+    return new Response(body, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") || "text/plain",
+      },
+    });
+  },
   async fetch(request, env, ctx) {  
     return new Response("Worker is running (cron only).", {  
       status: 200,  
