@@ -1,5 +1,5 @@
 import { createClient } from "@libsql/client/web";
-const TARGET_ENDPOINT = "https://lupinarashi--c4c469e22e8b11f1969a42dde27851f2.web.val.run";
+const TARGET_ENDPOINT = "https://lupinarashi--55dd7462300011f1951842dde27851f2.web.val.run";
 async function openTargetEndpoint() {
   return await fetch(TARGET_ENDPOINT, {
     method: "GET",
