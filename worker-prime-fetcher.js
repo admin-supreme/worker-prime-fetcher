@@ -16,19 +16,19 @@ export default {
     });  
   },
   async scheduled(event, env, ctx) {
-if (!env.LIBSQL_DB_URL || !env.LIBSQL_DB_AUTH_TOKEN) {
-  console.error("Missing Turso configuration.");
-  return;
-}
-const db = createClient({
-  url: env.LIBSQL_DB_URL.trim(),
-  authToken: env.LIBSQL_DB_AUTH_TOKEN.trim(),
-});
+    if (!env.LIBSQL_DB_URL || !env.LIBSQL_DB_AUTH_TOKEN) {
+      console.error("Missing Turso configuration.");
+      return;
+    }
+    const db = createClient({
+      url: env.LIBSQL_DB_URL.trim(),
+      authToken: env.LIBSQL_DB_AUTH_TOKEN.trim(),
+    });
     ctx.waitUntil((async () => {
-  try {
-    await openTargetEndpoint();
-    const hourUTC = new Date().getUTCHours();
+      try {
+        await openTargetEndpoint();
         const hourUTC = new Date().getUTCHours();
+        
         if (hourUTC < 20) {
           await syncJikan(env, db, event);
         } else {
