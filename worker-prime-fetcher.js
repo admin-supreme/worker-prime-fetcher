@@ -19,7 +19,7 @@ async function triggerValTownPipeline(env: any) {
 }
 export default {  
 async fetch(request, env, ctx) {
-  if (request.method === "POST") {
+  if (request.method === "GET") {
     try {
       const result = await triggerValTownPipeline(env);
       return new Response(
