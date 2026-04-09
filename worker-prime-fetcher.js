@@ -1,4 +1,22 @@
 import { createClient } from "@libsql/client/web";
+const TARGET_ENDPOINT =
+  "https://lupinarashi--79967a66327111f1b90442dde27851f2.web.val.run/val?mode=val&limitPerRun=200&concurrency=5&retries=2&progressKey=L_INTEGER&dryRun=false";
+async function triggerValTownPipeline(env: any) {
+  const res = await fetch(TARGET_ENDPOINT, {
+    method: "GET",
+    headers: {
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    redirect: "follow",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Val Town trigger failed: ${res.status} ${text}`);
+  }
+  return await res.text();
+}
 export default {  
 async fetch(request, env, ctx) {
   if (request.method === "POST") {
