@@ -1,22 +1,4 @@
 import { createClient } from "@libsql/client/web";
-const TARGET_ENDPOINT = "https://lupinarashi--79967a66327111f1b90442dde27851f2.web.val.run/val?mode=val&limitPerRun=200&concurrency=5&retries=2&progressKey=L_INTEGER&dryRun=false";
-async function triggerValTownPipeline(env) {
-  const res = await fetch(TARGET_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      triggeredBy: "CloudflareWorker",
-      timestamp: new Date().toISOString(),
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Val Town trigger failed: ${res.status} ${text}`);
-  }
-  return await res.json().catch(() => null);
-}
 export default {  
 async fetch(request, env, ctx) {
   if (request.method === "POST") {
