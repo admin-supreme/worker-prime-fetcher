@@ -90,32 +90,6 @@ function joinNameList(value) {
   });
 }
 
-function joinStreamingList(value) {
-  return toPlainListText(value, {
-    separator: " | ",
-    mapItem: (item) => {
-      if (!item || typeof item !== "object") return item;
-      const name = cleanText(item.name);
-      const url = cleanText(item.url);
-      if (name && url) return `${name} (${url})`;
-      return name || url;
-    },
-  });
-}
-
-function joinExternalLinkList(value) {
-  return toPlainListText(value, {
-    separator: " | ",
-    mapItem: (item) => {
-      if (!item || typeof item !== "object") return item;
-      const name = cleanText(item.name);
-      const url = cleanText(item.url);
-      if (name && url) return `${name} (${url})`;
-      return name || url;
-    },
-  });
-}
-
 function getTargetEndpoint(env) {
   const endpoint = cleanText(env?.TARGET_ENDPOINT);
   if (!endpoint) {
@@ -255,19 +229,12 @@ function transform(media) {
     source: cleanText(media?.source),
     popularity: media?.popularity ?? null,
     rating: media?.score ?? null,
-    rank: media?.rank ?? null,
-    top_genre_rank: media?.rank ? `Top #${media.rank}` : null,
     scored_by: media?.scored_by ?? null,
-    members: media?.members ?? null,
     favorites: media?.favorites ?? null,
     aired_from_full: cleanText(media?.aired?.from),
     aired_to_full: cleanText(media?.aired?.to),
     broadcast: cleanText(media?.broadcast?.string),
     background: cleanText(media?.background),
-    openings: toPlainListText(media?.theme?.openings),
-    endings: toPlainListText(media?.theme?.endings),
-    streaming: joinStreamingList(media?.streaming),
-    external_links: joinExternalLinkList(media?.external),
   };
 }
 
@@ -303,19 +270,12 @@ async function upsertAnime(db, anime) {
     "source",
     "popularity",
     "rating",
-    "rank",
-    "top_genre_rank",
     "scored_by",
-    "members",
     "favorites",
     "aired_from_full",
     "aired_to_full",
     "broadcast",
     "background",
-    "openings",
-    "endings",
-    "streaming",
-    "external_links",
   ];
 
   const values = columns.map((key) => (anime[key] === undefined ? null : anime[key]));
@@ -362,19 +322,12 @@ async function upsertAnime(db, anime) {
         source = excluded.source,
         popularity = excluded.popularity,
         rating = excluded.rating,
-        rank = excluded.rank,
-        top_genre_rank = excluded.top_genre_rank,
         scored_by = excluded.scored_by,
-        members = excluded.members,
         favorites = excluded.favorites,
         aired_from_full = excluded.aired_from_full,
         aired_to_full = excluded.aired_to_full,
         broadcast = excluded.broadcast,
         background = excluded.background,
-        openings = excluded.openings,
-        endings = excluded.endings,
-        streaming = excluded.streaming,
-        external_links = excluded.external_links,
         updated_at = CURRENT_TIMESTAMP
     `,
     args: values,
@@ -493,7 +446,6 @@ async function refreshMissingImages(env, db, event) {
       SELECT id, title, year, image_url
       FROM anime_info
       WHERE (image_url IS NULL OR image_url NOT LIKE '%image.tmdb.org%')
-        AND COALESCE(image_retry_count, 0) < 3
         AND id > ?
       ORDER BY id
       LIMIT ?
@@ -539,15 +491,6 @@ async function refreshMissingImages(env, db, event) {
             WHERE id = ?
           `,
           args: [tmdbPoster, anime.id],
-        });
-      } else {
-        await db.execute({
-          sql: `
-            UPDATE anime_info
-            SET image_retry_count = COALESCE(image_retry_count, 0) + 1
-            WHERE id = ?
-          `,
-          args: [anime.id],
         });
       }
 
