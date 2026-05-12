@@ -623,7 +623,6 @@ export default {
     );
   },
 };
-'''
 
 out = Path("/mnt/data/worker-prime-fetcher-updated.js")
 out.write_text(code, encoding="utf-8")
