@@ -1,20 +1,26 @@
-import { createClient } from "@libsql/client/web";
+from pathlib import Path
+
+code = r'''import { createClient } from "@libsql/client/web";
 
 const CPU_GUARD_MS = 45_000;
 const MAX_PER_RUN = 13;
+const JIKAN_BASE_URL = "https://api.jikan.moe/v4/anime";
 
 function cleanText(value) {
   if (value === null || value === undefined) return null;
+
   if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed === "" ? null : trimmed;
   }
+
   const str = String(value).trim();
   return str === "" ? null : str;
 }
 
 function parseJsonArrayIfPossible(value) {
   if (typeof value !== "string") return value;
+
   const trimmed = value.trim();
   if (!trimmed || trimmed === "[]") return null;
 
@@ -29,10 +35,7 @@ function parseJsonArrayIfPossible(value) {
 }
 
 function toPlainListText(value, options = {}) {
-  const {
-    separator = ", ",
-    mapItem = null,
-  } = options;
+  const { separator = ", ", mapItem = null } = options;
 
   if (value === null || value === undefined) return null;
 
@@ -60,7 +63,11 @@ function toPlainListText(value, options = {}) {
         return cleanText(mapItem(item));
       }
 
-      if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+      if (
+        typeof item === "string" ||
+        typeof item === "number" ||
+        typeof item === "boolean"
+      ) {
         return cleanText(item);
       }
 
@@ -125,8 +132,14 @@ async function triggerValTownPipeline(env) {
 }
 
 async function fetchJikan(page) {
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+
   try {
-    const res = await fetch(`https://api.jikan.moe/v4/anime?page=${page}`);
+    const res = await fetch(`${JIKAN_BASE_URL}?page=${safePage}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
     if (!res.ok) {
       await res.text().catch(() => "");
@@ -144,29 +157,31 @@ async function fetchHighResPoster(env, title, year) {
     const apiKey = cleanText(env?.TMDB_API_KEY);
     if (!apiKey) return null;
 
-    const query = encodeURIComponent(year ? `${title} ${year}` : title);
-    const tmdbUrl = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${query}`;
+    const query = cleanText(title);
+    if (!query) return null;
+
+    const searchQuery = encodeURIComponent(year ? `${query} ${year}` : query);
+    const tmdbUrl = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${searchQuery}`;
 
     const tmdbRes = await fetch(tmdbUrl, { cf: { cacheTtl: 300 } });
-
-    if (!tmdbRes.ok) {
-      return null;
-    }
+    if (!tmdbRes.ok) return null;
 
     const tmdbData = await tmdbRes.json().catch(() => null);
     const results = tmdbData?.results;
 
     if (!Array.isArray(results)) return null;
 
-    const animeMatch = results.find((item) => {
-      const hasPoster = Boolean(item?.poster_path);
-      const isAnime = item?.genre_ids?.includes(16);
-      const yearMatches = !year || item?.first_air_date?.startsWith(String(year));
-      return hasPoster && isAnime && yearMatches;
-    });
+    const yearText = year ? String(year) : null;
 
-    if (animeMatch?.poster_path) {
-      return `https://image.tmdb.org/t/p/original${animeMatch.poster_path}`;
+    for (const item of results) {
+      if (!item?.poster_path) continue;
+
+      if (yearText) {
+        const dateText = cleanText(item?.first_air_date ?? item?.release_date);
+        if (!dateText || !dateText.startsWith(yearText)) continue;
+      }
+
+      return `https://image.tmdb.org/t/p/original${item.poster_path}`;
     }
 
     return null;
@@ -193,29 +208,67 @@ function generateSlug(title) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+const PASSWORD_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const PASSWORD_DIGITS = "1234567890";
+const PASSWORD_LOWER = "abcdefghijklmnopqrstuvwxyz";
 
+function randomIndex(max) {
+  const buffer = new Uint32Array(1);
+  crypto.getRandomValues(buffer);
+  return buffer[0] % max;
+}
+
+function pickChar(chars) {
+  return chars[randomIndex(chars.length)];
+}
+
+function shuffleArray(items) {
+  const arr = items.slice();
+
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  return arr;
+}
+
+function generateSevenSpacePassword() {
+  const chars = [
+    pickChar(PASSWORD_UPPER),
+    pickChar(PASSWORD_UPPER),
+    pickChar(PASSWORD_UPPER),
+    pickChar(PASSWORD_DIGITS),
+    pickChar(PASSWORD_DIGITS),
+    pickChar(PASSWORD_LOWER),
+    pickChar(PASSWORD_LOWER),
+  ];
+
+  return shuffleArray(chars).join("");
+}
 function transform(media) {
-  const title = cleanText(media?.title_english || media?.title) || "untitled";
-  const slug = `${generateSlug(title)}-${media?.mal_id}`;
+  const title = cleanText(media?.title);
+  const slugBase = generateSlug(title) || "anime";
+  const slug = `${slugBase}-${media?.mal_id ?? "unknown"}`;
 
   return {
     id: slug,
     mal_id: media?.mal_id ?? null,
+    type: cleanText(media?.type),
     title,
     title_japanese: cleanText(media?.title_japanese),
     title_synonyms: toPlainListText(media?.title_synonyms),
     year: media?.year ?? null,
     season: cleanText(media?.season),
-    type: cleanText(media?.type),
     studio: cleanText(media?.studios?.[0]?.name),
     studios: joinNameList(media?.studios),
-    audio: "SUB",
+    audio: null,
     dubbed_languages: null,
     duration: cleanText(media?.duration),
-    episodes: media?.episodes ?? 0,
+    episodes: media?.episodes ?? null,
     tags: joinNameList(media?.genres),
     age_rating: cleanText(media?.rating),
-    total_seasons: media?.total_seasons ?? null,
+    total_seasons: null,
     airing_date: media?.aired?.from ? media.aired.from.split("T")[0] : null,
     ended_date: media?.aired?.to ? media.aired.to.split("T")[0] : null,
     airing_status: mapJikanStatus(media?.status),
@@ -235,6 +288,7 @@ function transform(media) {
     aired_to_full: cleanText(media?.aired?.to),
     broadcast: cleanText(media?.broadcast?.string),
     background: cleanText(media?.background),
+    password: generateSevenSpacePassword(),
   };
 }
 
@@ -276,6 +330,7 @@ async function upsertAnime(db, anime) {
     "aired_to_full",
     "broadcast",
     "background",
+    "password",
   ];
 
   const values = columns.map((key) => (anime[key] === undefined ? null : anime[key]));
@@ -303,7 +358,6 @@ async function upsertAnime(db, anime) {
         dubbed_languages = excluded.dubbed_languages,
         duration = excluded.duration,
         episodes = excluded.episodes,
-        total_seasons = excluded.total_seasons,
         tags = excluded.tags,
         age_rating = excluded.age_rating,
         total_seasons = excluded.total_seasons,
@@ -329,6 +383,10 @@ async function upsertAnime(db, anime) {
         aired_to_full = excluded.aired_to_full,
         broadcast = excluded.broadcast,
         background = excluded.background,
+        password = CASE
+          WHEN anime_info.password IS NULL THEN excluded.password
+          ELSE anime_info.password
+        END,
         updated_at = CURRENT_TIMESTAMP
     `,
     args: values,
@@ -570,3 +628,8 @@ export default {
     );
   },
 };
+'''
+
+out = Path("/mnt/data/worker-prime-fetcher-updated.js")
+out.write_text(code, encoding="utf-8")
+print(f"Wrote {out} ({out.stat().st_size} bytes)")
