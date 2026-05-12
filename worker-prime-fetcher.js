@@ -558,7 +558,6 @@ async function refreshMissingImages(env, db, event) {
     await state.put("refresh_last_id", newLastId);
   }
 }
-
 export default {
   async fetch(request, env, ctx) {
     if (request.method === "GET") {
@@ -623,7 +622,3 @@ export default {
     );
   },
 };
-
-out = Path("/mnt/data/worker-prime-fetcher-updated.js")
-out.write_text(code, encoding="utf-8")
-print(f"Wrote {out} ({out.stat().st_size} bytes)")
