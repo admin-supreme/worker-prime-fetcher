@@ -1,14 +1,9 @@
-from pathlib import Path
-
-code = r'''import { createClient } from "@libsql/client/web";
-
+import { createClient } from "@libsql/client/web";
 const CPU_GUARD_MS = 45_000;
 const MAX_PER_RUN = 13;
 const JIKAN_BASE_URL = "https://api.jikan.moe/v4/anime";
-
 function cleanText(value) {
   if (value === null || value === undefined) return null;
-
   if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed === "" ? null : trimmed;
