@@ -1,7 +1,9 @@
 import { createClient } from "@libsql/client/web";
+
 const CPU_GUARD_MS = 45_000;
 const MAX_PER_RUN = 13;
 const JIKAN_BASE_URL = "https://api.jikan.moe/v4/anime";
+
 function cleanText(value) {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") {
@@ -171,6 +173,7 @@ async function fetchJikan(page) {
     return { data: [], pagination: null };
   }
 }
+
 function getEnglishTitle(media) {
   return (
     cleanText(media?.title_english) ||
@@ -182,6 +185,7 @@ function getEnglishTitle(media) {
     cleanText(media?.title)
   );
 }
+
 async function fetchHighResPoster(env, title, year) {
   try {
     const apiKey = cleanText(env?.TMDB_API_KEY);
@@ -238,6 +242,7 @@ function generateSlug(title) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
 const PASSWORD_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const PASSWORD_DIGITS = "1234567890";
 const PASSWORD_LOWER = "abcdefghijklmnopqrstuvwxyz";
@@ -276,10 +281,6 @@ function generateSevenSpacePassword() {
 
   return shuffleArray(chars).join("");
 }
-function transform(media) {
-  const title = cleanText(media?.title);
-  const slugBase = generateSlug(title) || "anime";
-  const slug = `${slugBase}-${media?.mal_id ?? "unknown"}`;
 
 function transform(media) {
   const title = getEnglishTitle(media);
@@ -430,6 +431,8 @@ async function upsertAnime(db, anime) {
 
 async function ownPipelineSafe(env) {
   if (typeof ownPipeline === "function") {
+    // Note: ownPipeline is not defined in this file. 
+    // This block won't throw an error due to the typeof check, but it won't execute anything either.
     await ownPipeline(env);
   }
 }
@@ -598,26 +601,28 @@ async function refreshMissingImages(env, db, event) {
     await state.put("refresh_last_id", newLastId);
   }
 }
+
 export default {
   async fetch(request, env, ctx) {
-  if (request.method === "GET") {
-    const result = await triggerValTownPipeline(env);
+    if (request.method === "GET") {
+      const result = await triggerValTownPipeline(env);
 
-    return new Response(
-      JSON.stringify({
-        message: "Request processed",
-        valTownTrigger: result,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
-  return new Response("Worker is running (cron only).", {
-    status: 200,
-  });
-},
+      return new Response(
+        JSON.stringify({
+          message: "Request processed",
+          valTownTrigger: result,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    return new Response("Worker is running (cron only).", {
+      status: 200,
+    });
+  },
+
   async scheduled(event, env, ctx) {
     if (!env.LIBSQL_DB_URL || !env.LIBSQL_DB_AUTH_TOKEN) {
       console.error("Missing Turso configuration.");
