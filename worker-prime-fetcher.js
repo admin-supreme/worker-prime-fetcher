@@ -637,8 +637,9 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
-          await ownPipelineSafe(env);
-
+          // ADD THIS LINE:
+          await triggerValTownPipeline(env); 
+          
           const hourUTC = new Date().getUTCHours();
           if (hourUTC < 20) {
             await syncJikan(env, db, event);
@@ -651,4 +652,5 @@ export default {
       })()
     );
   },
+
 };
